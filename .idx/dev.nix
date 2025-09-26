@@ -1,53 +1,41 @@
-# To learn more about how to use Nix to configure your environment
+# To learn more about how to configure your Nix environment,
 # see: https://developers.google.com/idx/guides/customize-idx-env
 { pkgs, ... }: {
-  # Which nixpkgs channel to use.
-  channel = "stable-24.05"; # or "unstable"
-  # Use https://search.nixos.org/packages to find packages
+  channel = "stable-24.05";
+
+  # We only need the base Python interpreter from Nix.
   packages = [
-    # pkgs.go
-    # pkgs.python311
-    # pkgs.python311Packages.pip
-    # pkgs.nodejs_20
-    # pkgs.nodePackages.nodemon
+    pkgs.python311
   ];
-  # Sets environment variables in the workspace
-  env = {};
+
   idx = {
-    # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
-      # "vscodevim.vim"
-      "google.gemini-cli-vscode-ide-companion"
+      "ms-python.python"
     ];
-    # Enable previews
+
+    workspace = {
+      # This block automates your Python project setup.
+      onCreate = {
+        # 1. Create a virtual environment named .venv in your project folder.
+        create-venv = "python3 -m venv .venv";
+        # 2. Activate the venv and install all packages from your requirements.txt.
+        install-packages = ". .venv/bin/activate && pip install --no-cache-dir -r requirements.txt";
+      };
+
+      onStart = {
+        # A reminder for you when you open a new terminal.
+        welcome-message = "echo 'Welcome back! Your Python environment is in .venv. To activate it in a new terminal, run: source .venv/bin/activate'";
+      };
+    };
+
     previews = {
       enable = true;
       previews = {
-        # web = {
-        #   # Example: run "npm run dev" with PORT set to IDX's defined port for previews,
-        #   # and show it in IDX's web preview panel
-        #   command = ["npm" "run" "dev"];
-        #   manager = "web";
-        #   env = {
-        #     # Environment variables to set for your server
-        #     PORT = "$PORT";
-        #   };
-        # };
-      };
-    };
-    # Workspace lifecycle hooks
-    workspace = {
-      # Runs when a workspace is first created
-      onCreate = {
-        # Example: install JS dependencies from NPM
-        # npm-install = "npm install";
-        # Open editors for the following files by default, if they exist:
-        default.openFiles = [ ".idx/dev.nix" "README.md" ];
-      };
-      # Runs when the workspace is (re)started
-      onStart = {
-        # Example: start a background task to watch and re-build backend code
-        # watch-backend = "npm run watch-backend";
+        web = {
+          # UPDATED COMMAND: Added flags to make Streamlit work behind a proxy.
+          command = ["bash" "-c" "source .venv/bin/activate && streamlit run mcq-generator/StreamlitAPP.py --server.port $PORT --server.headless true --server.enableCORS false --server.enableXsrfProtection false"];
+          manager = "web";
+        };
       };
     };
   };
